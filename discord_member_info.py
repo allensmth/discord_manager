@@ -62,12 +62,15 @@ class CustomBot(commands.Bot):
 
 # 创建机器人实例
 intents = discord.Intents.default()
-intents.members = True  # 启用成员权限
-intents.message_content = True  # 启用消息内容权限
+intents.members = True
+intents.message_content = True
+intents.guilds = True
+intents.messages = True
+intents.guild_messages = True
 
-
+# 修改机器人实例的创建
 bot = CustomBot(
-    command_prefix=commands.when_mentioned_or('!', '/'),
+    command_prefix=commands.when_mentioned_or('!'),  # 简化前缀
     intents=intents,
     help_command=commands.DefaultHelpCommand(
         no_category='基础命令',
@@ -75,7 +78,8 @@ bot = CustomBot(
             'help': '显示此帮助消息',
             'cooldown': commands.CooldownMapping.from_cooldown(1, 3.0, commands.BucketType.user)
         }
-    )
+    ),
+    description='一个用于管理Discord成员的机器人'  # 添加描述
 )
 
 # 添加上下文菜单命令
@@ -178,6 +182,17 @@ async def get_member_info(ctx, username: str):
 async def ping(ctx):
     """测试机器人的响应时间"""
     await ctx.send(f'🏓 Pong! 延迟: {round(bot.latency * 1000)}ms')
+
+# 添加一个同步命令的命令
+@bot.command(name='sync', hidden=True)
+@commands.is_owner()  # 只有机器人所有者可以使用
+async def sync_commands(ctx):
+    """同步所有应用命令"""
+    try:
+        await bot.tree.sync()
+        await ctx.send("✅ 命令同步成功！")
+    except Exception as e:
+        await ctx.send(f"❌ 同步失败：{str(e)}")
 
 # 根据环境变量配置代理
 if os.getenv('PROXY_ENABLED', 'false').lower() == 'true':
