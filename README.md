@@ -8,7 +8,3 @@ A tool for managing Discord members by adding expiration dates to their nickname
 - Set a custom nickname for a member
 - Set a custom note for a member
 - Set a custom expiration date for a member
-- Set a custom nickname and note for a member
-- Set a custom expiration date and note for a member
-- Set a custom nickname and expiration date for a member
-- Set a custom note and expiration date for a member
