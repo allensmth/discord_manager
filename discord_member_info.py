@@ -88,6 +88,9 @@ class CustomBot(commands.Bot):
                 
                 # 打印成员信息
                 print(f'{member.name:<20} {nickname:<20} {roles_str:<30} {expiry_date:<10}')
+                # 忽略特定用户
+                if member.name in ['wukong_fun', 'member_manager']:
+                    continue
                 
                 # 写入CSV行，使用引号包围字段以处理可能的逗号
                 f.write(f'"{member.name}","{nickname}","{roles_str}","{original_nickname}","{expiry_date}"\n')
