@@ -110,6 +110,23 @@ async def weekly_error(ctx, error):
     else:
         await ctx.send(f"执行命令时发生错误：{str(error)}")
 
+@bot.command(name='info')
+async def get_member_info(ctx, username: str):
+    """获取指定用户的备注信息"""
+    # 检查是否在服务器中使用
+    if ctx.guild is None:
+        await ctx.send("此命令只能在服务器中使用")
+        return
+    
+    # 在服务器中查找匹配的用户
+    member = discord.utils.get(ctx.guild.members, name=username)
+    
+    if member:
+        note = member.nick if member.nick else "无备注"
+        await ctx.send(f"用户 {username} 的备注: {note}")
+    else:
+        await ctx.send(f"未找到用户 {username}")
+
 @bot.command(name='ping', help='测试机器人是否在线')
 async def ping(ctx):
     """测试机器人的响应时间"""
