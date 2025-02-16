@@ -8,16 +8,26 @@ import asyncio
 # 加载环境变量
 load_dotenv()
 
-# 根据环境变量配置代理
-if os.getenv('PROXY_ENABLED', 'false').lower() == 'true':
-    # 设置代理环境变量
-    os.environ['HTTP_PROXY'] = 'http://127.0.0.1:7897'
-    os.environ['HTTPS_PROXY'] = 'http://127.0.0.1:7897'
-
 # 创建机器人实例，设置帮助命令
 class CustomBot(commands.Bot):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+        # 初始化HTTP客户端
+        if os.getenv('PROXY_ENABLED', 'false').lower() == 'true':
+            class ProxyHTTPClient(discord.http.HTTPClient):
+                def __init__(self, *args, **kwargs):
+                    super().__init__(*args, **kwargs)
+                    self.proxy = 'http://127.0.0.1:7897'
+
+                async def request(self, route, *args, **kwargs):
+                    kwargs['proxy'] = self.proxy
+                    return await super().request(route, *args, **kwargs)
+
+            self.http = ProxyHTTPClient(self.loop)
+
     async def setup_hook(self):
-        await self.tree.sync()  # 同步斜杠命令
+        pass  # 保留setup_hook以备将来扩展
 
     async def on_ready(self):
         print(f'Bot已登录为 {self.user.name}')
@@ -50,7 +60,7 @@ intents.members = True  # 启用成员权限
 intents.message_content = True  # 启用消息内容权限
 
 bot = CustomBot(
-    command_prefix='!', 
+    command_prefix=commands.when_mentioned_or('!', '/'),
     intents=intents,
     help_command=commands.DefaultHelpCommand(
         no_category='基础命令',
