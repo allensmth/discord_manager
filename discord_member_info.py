@@ -25,11 +25,15 @@ class CustomBot(commands.Bot):
                     return await super().request(route, *args, **kwargs)
 
             self.http = ProxyHTTPClient(self.loop)
+            self._connection.http = self.http
 
     async def setup_hook(self):
-        # 同步应用命令
-        await self.tree.sync()
-        print("已同步应用命令")
+        try:
+            # 同步应用命令
+            await self.tree.sync()
+            print("已同步应用命令")
+        except Exception as e:
+            print(f"同步应用命令时出错: {e}")
 
     async def on_ready(self):
         print(f'Bot已登录为 {self.user.name}')
@@ -60,6 +64,7 @@ class CustomBot(commands.Bot):
 intents = discord.Intents.default()
 intents.members = True  # 启用成员权限
 intents.message_content = True  # 启用消息内容权限
+
 
 bot = CustomBot(
     command_prefix=commands.when_mentioned_or('!', '/'),
