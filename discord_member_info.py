@@ -27,7 +27,9 @@ class CustomBot(commands.Bot):
             self.http = ProxyHTTPClient(self.loop)
 
     async def setup_hook(self):
-        pass  # 保留setup_hook以备将来扩展
+        # 同步应用命令
+        await self.tree.sync()
+        print("已同步应用命令")
 
     async def on_ready(self):
         print(f'Bot已登录为 {self.user.name}')
@@ -70,6 +72,36 @@ bot = CustomBot(
         }
     )
 )
+
+# 添加上下文菜单命令
+@bot.tree.context_menu(name="Add to Weekly")
+async def add_to_weekly(interaction: discord.Interaction, member: discord.Member):
+    """将用户添加到weekly组"""
+    # 检查权限
+    if not interaction.user.guild_permissions.manage_roles:
+        await interaction.response.send_message("您没有管理身份组的权限！", ephemeral=True)
+        return
+
+    try:
+        # 检查weekly身份组是否存在
+        weekly_role = discord.utils.get(interaction.guild.roles, name='weekly')
+        if not weekly_role:
+            weekly_role = await interaction.guild.create_role(
+                name='weekly',
+                color=discord.Color.blue(),
+                reason="Created for weekly member tracking"
+            )
+        
+        # 添加身份组到成员
+        await member.add_roles(weekly_role)
+        await interaction.response.send_message(f'✅ 已将 {member.mention} 添加到 weekly 组', ephemeral=True)
+        
+    except discord.Forbidden:
+        await interaction.response.send_message("错误：机器人权限不足，无法管理身份组！", ephemeral=True)
+    except discord.HTTPException:
+        await interaction.response.send_message("错误：添加身份组时发生网络错误，请稍后重试。", ephemeral=True)
+    except Exception as e:
+        await interaction.response.send_message(f"发生未知错误：{str(e)}", ephemeral=True)
 
 @bot.command(name='weekly', help='将用户添加到weekly组。用法：!weekly @用户名')
 async def weekly(ctx, member: discord.Member):
