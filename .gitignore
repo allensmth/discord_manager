@@ -31,3 +31,4 @@ var/
 .vscode/
 *.swp
 *.swo 
+discord_members.csv

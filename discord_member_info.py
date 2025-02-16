@@ -4,6 +4,7 @@ import os
 from dotenv import load_dotenv
 import aiohttp
 import asyncio
+from datetime import datetime, date, timedelta
 
 # 加载环境变量
 load_dotenv()
@@ -44,21 +45,52 @@ class CustomBot(commands.Bot):
         # 显示服务器信息
         print(f'\n服务器: {guild.name} (ID: {guild.id})\n')
         print('成员信息:')
-        print('-' * 50)
-        print(f'{"用户名":<20} {"昵称":<20} {"身份组":<30} {"备注":<20}')
-        print('-' * 50)
+        print('-' * 70)
+        print(f'{"用户名":<20} {"昵称":<20} {"身份组":<30} {"到期日期":<10}')
+        print('-' * 70)
         
-        # 遍历服务器中的所有成员
-        for member in guild.members:
-            # 获取成员的身份组（去除@everyone）
-            roles = [role.name for role in member.roles if role.name != '@everyone']
-            roles_str = ', '.join(roles) if roles else '无'
+        # 打开CSV文件写入成员信息
+        with open('discord_members.csv', 'w', encoding='utf-8', newline='') as f:
+            # 写入CSV表头
+            f.write('用户名,昵称,身份组,备注,到期日期\n')
             
-            # 获取成员的昵称（如果没有则显示用户名）
-            nickname = member.nick if member.nick else '无'
-            
-            # 打印成员信息
-            print(f'{member.name:<20} {nickname:<20} {roles_str:<30} {member.nick or "无":<20}')
+            # 遍历服务器中的所有成员
+            for member in guild.members:
+                # 获取成员的身份组（去除@everyone）
+                roles = [role.name for role in member.roles if role.name != '@everyone']
+                roles_str = ', '.join(roles) if roles else '无'
+                
+                # 获取成员的昵称和日期
+                nickname = member.nick if member.nick else '无'
+                expiry_date = '无'
+                original_nickname = nickname  # 保存原始昵称作为备注
+                
+                # 解析昵称中的日期
+                if nickname != '无':
+                    parts = nickname.split()
+                    if len(parts) > 1:
+                        try:
+                            date_str = parts[-1]  # 获取最后一部分作为日期
+                            if '-' in date_str:
+                                date_parts = date_str.split('-')
+                                if len(date_parts) == 2:  # mm-dd 格式
+                                    month, day = map(int, date_parts)
+                                    year = 2025
+                                    expiry_date = date(year, month, day).strftime('%Y-%m-%d')
+                                elif len(date_parts) == 3:  # yy-mm-dd 格式
+                                    yy, month, day = map(int, date_parts)
+                                    year = 2000 + yy  # 转换为完整年份
+                                    expiry_date = date(year, month, day).strftime('%Y-%m-%d')
+                                # 更新nickname只保留名字部分
+                                nickname = ' '.join(parts[:-1])
+                        except (ValueError, IndexError):
+                            pass
+                
+                # 打印成员信息
+                print(f'{member.name:<20} {nickname:<20} {roles_str:<30} {expiry_date:<10}')
+                
+                # 写入CSV行，使用引号包围字段以处理可能的逗号
+                f.write(f'"{member.name}","{nickname}","{roles_str}","{original_nickname}","{expiry_date}"\n')
 
 # 创建机器人实例
 intents = discord.Intents.default()
@@ -100,6 +132,17 @@ async def add_to_weekly(interaction: discord.Interaction, member: discord.Member
                 color=discord.Color.blue(),
                 reason="Created for weekly member tracking"
             )
+        
+        # 计算2周后的日期
+        future_date = (datetime.now() + timedelta(weeks=2))
+        future_date_str = future_date.strftime("%-m-%-d")  # 格式化为 "月-日"
+        # 设置新昵称和备注
+        new_nickname = f"{member.display_name} {future_date_str}"
+        await member.edit(nick=new_nickname)
+        
+        # 更新备注
+        expiry_date = future_date.strftime("%Y-%m-%d")
+        await member.edit(reason=f"试用2周，到期日{expiry_date}")
         
         # 添加身份组到成员
         await member.add_roles(weekly_role)
